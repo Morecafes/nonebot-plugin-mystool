@@ -5,9 +5,9 @@ from nonebot.internal.params import ArgStr
 from nonebot.matcher import Matcher
 from nonebot.params import T_State
 
-from ..api import BaseMission
+from ..api import BaseMission, BaseGameSign
 from ..command.common import CommandRegistry
-from ..model import PluginDataManager, plugin_config, UserAccount, CommandUsage, UserData
+from ..model import PluginDataManager, plugin_config, UserAccount, CommandUsage
 from ..utils import COMMAND_BEGIN, GeneralMessageEvent
 
 __all__ = ["setting", "account_setting", "global_setting"]
@@ -80,11 +80,19 @@ async def _(event: Union[GeneralMessageEvent], matcher: Matcher, state: T_State,
     user_setting = ""
     user_setting += f"1️⃣ 米游币任务自动执行：{'开' if account.enable_mission else '关'}"
     user_setting += f"\n2️⃣ 游戏自动签到：{'开' if account.enable_game_sign else '关'}"
-    platform_show = "iOS" if account.platform == "ios" else "安卓"
-    user_setting += f"\n3️⃣ 设备平台：{platform_show}"
 
     # 筛选出用户数据中的missionGame对应的游戏全称
-    user_setting += "\n\n4️⃣ 执行米游币任务的频道：" + \
+    user_setting += "\n\n3️⃣ 执行签到的游戏：" + \
+                    "\n- " + "、".join(
+        f"『{next((game.name for game in BaseGameSign.available_game_signs if game.en_name == game_id), 'N/A')}』"
+        for game_id in account.game_sign_games
+    )
+
+    platform_show = "iOS" if account.platform == "ios" else "安卓"
+    user_setting += f"\n4️⃣ 设备平台：{platform_show}"
+
+    # 筛选出用户数据中的missionGame对应的游戏全称
+    user_setting += "\n\n5️⃣ 执行米游币任务的频道：" + \
                     "\n- " + "、".join(
         map(
             lambda x: f"『{x.name}』" if x else "『N/A』",
@@ -94,11 +102,11 @@ async def _(event: Union[GeneralMessageEvent], matcher: Matcher, state: T_State,
             )
         )
     )
-    user_setting += f"\n\n5️⃣ 实时便笺体力提醒：{'开' if account.enable_resin else '关'}"
-    user_setting += f"\n6️⃣更改便笺体力提醒阈值 \
+
+    user_setting += f"\n\n6️⃣ 实时便笺体力提醒：{'开' if account.enable_resin else '关'}"
+    user_setting += f"\n7️⃣更改便笺体力提醒阈值 \
                       \n   当前原神提醒阈值：{account.user_resin_threshold} \
                       \n   当前崩铁提醒阈值：{account.user_stamina_threshold}"
-    user_setting += "\n7️⃣设置微博相关功能"
     user_setting += "\n8️⃣⚠️删除账户数据"
 
     await account_setting.send(user_setting + '\n\n您要更改哪一项呢？请发送 1 / 2 / 3 / 4 / 5 / 6 / 7/ 8'
@@ -123,6 +131,16 @@ async def _(event: Union[GeneralMessageEvent], state: T_State, setting_id=ArgStr
         PluginDataManager.write_plugin_data()
         await account_setting.finish(f"📅米哈游游戏自动签到已 {'✅开启' if account.enable_game_sign else '❌关闭'}")
     elif setting_id == '3':
+        signable_games = "、".join(f"『{game.name}』" for game in BaseGameSign.available_game_signs)
+        await account_setting.send(
+            "请发送你想要执行签到的游戏："
+            "\n❕多个游戏请用空格分隔，如 “原神 崩坏3 综合”"
+            "\n\n可选的游戏："
+            f"\n- {signable_games}"
+            "\n\n🚪发送“退出”即可退出"
+        )
+        state["setting_item"] = "sign_games"
+    elif setting_id == '4':
         if account.platform == "ios":
             account.platform = "android"
             platform_show = "安卓"
@@ -131,21 +149,21 @@ async def _(event: Union[GeneralMessageEvent], state: T_State, setting_id=ArgStr
             platform_show = "iOS"
         PluginDataManager.write_plugin_data()
         await account_setting.finish(f"📲设备平台已更改为 {platform_show}")
-    elif setting_id == '4':
+    elif setting_id == '5':
         games_show = "、".join(map(lambda x: f"『{x.name}』", BaseMission.available_games.values()))
         await account_setting.send(
             "请发送你想要执行米游币任务的频道："
             "\n❕多个频道请用空格分隔，如 “原神 崩坏3 综合”"
-            "\n\n可选的频道："
+            "\n\n可选的游戏："
             f"\n- {games_show}"
             "\n\n🚪发送“退出”即可退出"
         )
         state["setting_item"] = "mission_games"
-    elif setting_id == '5':
+    elif setting_id == '6':
         account.enable_resin = not account.enable_resin
         PluginDataManager.write_plugin_data()
         await account_setting.finish(f"📅原神、星穹铁道便笺提醒已 {'✅开启' if account.enable_resin else '❌关闭'}")
-    elif setting_id == '6':
+    elif setting_id == '7':
         await account_setting.send(
             "请发送想要修改体力提醒阈值的游戏编号："
             "\n1. 原神"
@@ -153,17 +171,6 @@ async def _(event: Union[GeneralMessageEvent], state: T_State, setting_id=ArgStr
             "\n\n🚪发送“退出”即可退出"
         )
         state["setting_item"] = "setting_notice_value"
-        return
-    elif setting_id == "7":
-        user: UserData = state["user"]
-        msg = ""
-        msg += "请发送想要设置的微博参数："
-        msg += f"\n1. 微博签到与兑换：{'开' if user.enable_weibo else '关'}"
-        msg += "\n2. 微博cookie" \
-               "\n3. 微博params" \
-               "\n\n🚪发送“退出”即可退出"
-        await account_setting.send(msg)
-        state["setting_item"] = "weibo_value"
         return
     elif setting_id == '8':
         state["prepare_to_delete"] = True
@@ -174,7 +181,6 @@ async def _(event: Union[GeneralMessageEvent], state: T_State, setting_id=ArgStr
         await account_setting.finish(f"已删除账号 {account.display_name} 的数据")
     else:
         await account_setting.reject("⚠️您的输入有误，请重新输入")
-
     state["notice_game"] = ""
 
 
@@ -186,7 +192,7 @@ async def _(_: Union[GeneralMessageEvent], state: T_State, notice_game=ArgStr())
         if notice_game == "1":
             await account_setting.send(
                 "请输入想要所需通知阈值，树脂达到该值时将进行通知："
-                "可用范围 [0, 160]"
+                "可用范围 [0, 200]"
                 "\n\n🚪发送“退出”即可退出"
             )
             state["setting_item"] = "setting_notice_value_op"
@@ -199,28 +205,6 @@ async def _(_: Union[GeneralMessageEvent], state: T_State, notice_game=ArgStr())
             state["setting_item"] = "setting_notice_value_sr"
         else:
             await account_setting.reject("⚠️您的输入有误，请重新输入")
-
-    elif state["setting_item"] == "weibo_value":
-        user: UserData = state["user"]
-        if notice_game == "1":
-            user.enable_weibo = not user.enable_weibo
-            PluginDataManager.write_plugin_data()
-            await account_setting.finish(f"微博签到与兑换功能已 {'✅开启' if user.enable_weibo else '❌关闭'}")
-        elif notice_game == "2":
-            await account_setting.send(
-                "请微博cookie："
-                "发送格式不带cookie="
-                "\n\n🚪发送“退出”即可退出"
-            )
-            state["setting_item"] = "setting_weibo_value_cookie"
-        elif notice_game == "3":
-            await account_setting.send(
-                "请微博params："
-                "发送格式不带params="
-                "params必要参数: s、gsid、aid、from"
-                "\n\n🚪发送“退出”即可退出"
-            )
-            state["setting_item"] = "setting_weibo_value_params"
 
 
 @account_setting.got('setting_value')
@@ -235,14 +219,14 @@ async def _(_: Union[GeneralMessageEvent], state: T_State, setting_value=ArgStr(
         except ValueError:
             await account_setting.reject("⚠️请输入有效的数字。")
         else:
-            if 0 <= resin_threshold <= 160:
+            if 0 <= resin_threshold <= 200:
                 # 输入有效的数字范围，将 resin_threshold 赋值为输入的整数
                 account.user_resin_threshold = resin_threshold
                 PluginDataManager.write_plugin_data()
                 await account_setting.finish("更改原神便笺树脂提醒阈值成功\n"
                                              f"⏰当前提醒阈值：{resin_threshold}")
             else:
-                await account_setting.reject("⚠️输入的数字范围应在 0 到 160 之间。")
+                await account_setting.reject("⚠️输入的数字范围应在 0 到 200 之间。")
 
     elif state["setting_item"] == "setting_notice_value_sr":
         try:
@@ -258,6 +242,23 @@ async def _(_: Union[GeneralMessageEvent], state: T_State, setting_value=ArgStr(
                                              f"⏰当前提醒阈值：{stamina_threshold}")
             else:
                 await account_setting.reject("⚠️输入的数字范围应在 0 到 240 之间。")
+
+    elif state["setting_item"] == "sign_games":
+        games_input = setting_value.split()
+        sign_games = []
+        for game in games_input:
+            subclass_filter = filter(lambda x: x.name == game, BaseGameSign.available_game_signs)
+            subclass_pair = next(subclass_filter, None)
+            if subclass_pair is None:
+                await account_setting.reject("⚠️您的输入有误，请重新输入")
+            else:
+                game_name = subclass_pair.en_name
+                sign_games.append(game_name)
+
+        account.game_sign_games = sign_games
+        PluginDataManager.write_plugin_data()
+        setting_value = setting_value.replace(" ", "、")
+        await account_setting.finish(f"💬执行签到的游戏已更改为『{setting_value}』")
 
     elif state["setting_item"] == "mission_games":
         games_input = setting_value.split()
@@ -275,18 +276,6 @@ async def _(_: Union[GeneralMessageEvent], state: T_State, setting_value=ArgStr(
         PluginDataManager.write_plugin_data()
         setting_value = setting_value.replace(" ", "、")
         await account_setting.finish(f"💬执行米游币任务的频道已更改为『{setting_value}』")
-
-    # 做区分，以下应用在用户数据中，而非米游社数据中
-    user: UserData = state["user"]
-    print(user)
-    if state["setting_item"] == "setting_weibo_value_cookie":
-        user.weibo_cookie = str(setting_value)
-        PluginDataManager.write_plugin_data()
-        await account_setting.finish("设置微博cookie成功")
-    elif state["setting_item"] == "setting_weibo_value_params":
-        user.weibo_params = str(setting_value)
-        PluginDataManager.write_plugin_data()
-        await account_setting.finish("设置微博params成功")
 
 
 global_setting = on_command(plugin_config.preference.command_start + '通知设置', priority=5, block=True)

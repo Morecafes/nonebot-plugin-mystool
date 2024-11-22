@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import time, timedelta, datetime
 from pathlib import Path
 from typing import Union, Optional, Tuple, Any, Dict, TYPE_CHECKING
@@ -96,8 +97,8 @@ class Preference(BaseModel):
     """是否启用管理员名单"""
     admin_list_path: Optional[Path] = data_path / "admin_list.txt"
     """管理员名单文件路径"""
-    game_token_app_id: str = "1"
-    """米游社二维码登录的应用标识符（可用的任何值都没有区别，但是必须传递此参数）"""
+    game_token_app_id: str = "2"
+    """米游社二维码登录的应用标识符"""
     qrcode_query_interval: float = 1
     """检查米游社登录二维码扫描情况的请求间隔（单位：秒）"""
     qrcode_wait_time: float = 120
@@ -152,7 +153,7 @@ class GoodListImageConfig(BaseModel):
     '''字体大小'''
     SAVE_PATH: Path = data_path
     '''商品列表图片缓存目录'''
-    MULTI_PROCESS: bool = True
+    MULTI_PROCESS: bool = sys.platform != "win32"
     '''是否使用多进程生成图片（如果生成图片时崩溃，可尝试关闭此选项）'''
 
 

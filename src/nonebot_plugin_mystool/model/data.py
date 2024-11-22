@@ -242,11 +242,20 @@ class UserAccount(BaseModelWithSetter):
     '''是否开启便笺提醒'''
     platform: Literal["ios", "android"] = "ios"
     '''设备平台'''
+    game_sign_games: List[str] = [
+        "GenshinImpact",
+        "HonkaiImpact3",
+        "HoukaiGakuen2",
+        "TearsOfThemis",
+        "StarRail",
+        "ZenlessZoneZero"
+    ]
+    '''允许签到的游戏列表'''
     mission_games: List[str] = ["BBSMission"]
     '''在哪些板块执行米游币任务计划 为 BaseMission 子类名称'''
     user_stamina_threshold: int = 240
     '''崩铁便笺体力提醒阈值，0为一直提醒'''
-    user_resin_threshold: int = 160
+    user_resin_threshold: int = 200
     '''原神便笺树脂提醒阈值，0为一直提醒'''
 
     def __init__(self, **data: Any):
@@ -367,12 +376,6 @@ class UserData(BaseModelWithSetter):
     """
     enable_notice: bool = True
     """是否开启通知"""
-    enable_weibo: bool = False
-    '''是否开启微博兑换码功能'''
-    weibo_cookie: str = ""
-    '''微博查询活动签到用的 cookie'''
-    weibo_params: str = ""
-    '''微博查询活动签到用的 params'''
     geetest_url: Optional[str]
     '''极验Geetest人机验证打码接口URL'''
     geetest_params: Optional[Dict[str, Any]] = None

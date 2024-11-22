@@ -224,7 +224,11 @@ async def _(
                     plans.discard(plan)
                     PluginDataManager.write_plugin_data()
                     for i in range(plugin_config.preference.exchange_thread_count):
-                        scheduler.remove_job(job_id=f"exchange-plan-{hash(plan)}-{i}")
+                        try:
+                            scheduler.remove_job(job_id=f"exchange-plan-{hash(plan)}-{i}")
+                        except scheduler.JobLookupError:
+                            # TODO: 原因不明，暂时忽略异常
+                            pass
                     await matcher.finish('兑换计划删除成功')
             await matcher.finish(f"您没有设置商品ID为 {good_id} 的兑换哦~")
         else:

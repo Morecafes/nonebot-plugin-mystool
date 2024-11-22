@@ -303,7 +303,7 @@ HEADERS_STARRAIL_STATUS_WIDGET = {
     "Host": "api-takumi-record.mihoyo.com"
 }
 
-IncorrectReturn = (KeyError, TypeError, AttributeError, IndexError, ValidationError)
+IncorrectReturn = (KeyError, TypeError, AttributeError, IndexError, ValidationError, json.decoder.JSONDecodeError)
 """米游社API返回数据无效会触发的异常组合"""
 
 
@@ -1688,7 +1688,7 @@ async def verify_verification(
 
 async def fetch_game_token_qrcode(
         device_id: str,
-        app_id: str = "1",
+        app_id: str,
         retry: bool = True
 ) -> Tuple[BaseApiStatus, Optional[Tuple[str, str]]]:
     """

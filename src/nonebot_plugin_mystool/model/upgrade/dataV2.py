@@ -251,7 +251,7 @@ class UserAccount(BaseModelWithSetter):
     '''在哪些板块执行米游币任务计划 为 BaseMission 子类名称'''
     user_stamina_threshold: int = 240
     '''崩铁便笺体力提醒阈值，0为一直提醒'''
-    user_resin_threshold: int = 160
+    user_resin_threshold: int = 200
     '''原神便笺树脂提醒阈值，0为一直提醒'''
 
     def __init__(self, **data: Any):

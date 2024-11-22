@@ -2,7 +2,7 @@ import io
 import os
 import zipfile
 from multiprocessing import Lock
-from typing import List
+from typing import List, Tuple
 
 import httpx
 from PIL import Image, ImageDraw, ImageFont
@@ -77,7 +77,7 @@ async def game_list_to_image(good_list: List[Good], lock: Lock = None, retry: bo
 
         size_y = 0
         '''起始粘贴位置 高'''
-        position: List[tuple] = []
+        position: List[Tuple[int, int]] = []
         '''预览图粘贴的位置'''
         imgs: List[Image.Image] = []
         '''商品预览图'''

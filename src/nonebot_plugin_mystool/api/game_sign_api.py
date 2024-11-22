@@ -12,17 +12,17 @@ from ..utils import logger, generate_ds, \
     get_async_retry
 
 __all__ = ["BaseGameSign", "GenshinImpactSign", "HonkaiImpact3Sign", "HoukaiGakuen2Sign", "TearsOfThemisSign",
-           "StarRailSign"]
+           "StarRailSign", "ZenlessZoneZeroSign"]
 
 
 class BaseGameSign:
     """
     游戏签到基类
     """
-    name = ""
+    name: str
     """游戏名字"""
-
-    act_id = ""
+    en_name: str
+    act_id: str
     url_reward = "https://api-takumi.mihoyo.com/event/luna/home"
     url_info = "https://api-takumi.mihoyo.com/event/luna/info"
     url_sign = "https://api-takumi.mihoyo.com/event/luna/sign"
@@ -37,7 +37,7 @@ class BaseGameSign:
         "Referer": "https://webstatic.mihoyo.com/",
         "Accept-Encoding": "gzip, deflate, br"
     }
-    game_id = 0
+    game_id = int
 
     available_game_signs: Set[Type["BaseGameSign"]] = set()
     """可用的子类"""
@@ -226,6 +226,7 @@ class GenshinImpactSign(BaseGameSign):
     原神 游戏签到
     """
     name = "原神"
+    en_name = "GenshinImpact"
     act_id = "e202311201442471"
     game_id = 2
     headers_general = BaseGameSign.headers_general.copy()
@@ -241,6 +242,7 @@ class HonkaiImpact3Sign(BaseGameSign):
     崩坏3 游戏签到
     """
     name = "崩坏3"
+    en_name = "HonkaiImpact3"
     act_id = "e202306201626331"
     game_id = 1
 
@@ -250,6 +252,7 @@ class HoukaiGakuen2Sign(BaseGameSign):
     崩坏学园2 游戏签到
     """
     name = "崩坏学园2"
+    en_name = "HoukaiGakuen2"
     act_id = "e202203291431091"
     game_id = 3
 
@@ -259,6 +262,7 @@ class TearsOfThemisSign(BaseGameSign):
     未定事件簿 游戏签到
     """
     name = "未定事件簿"
+    en_name = "TearsOfThemis"
     act_id = "e202202251749321"
     game_id = 4
 
@@ -268,8 +272,29 @@ class StarRailSign(BaseGameSign):
     崩坏：星穹铁道 游戏签到
     """
     name = "崩坏：星穹铁道"
+    en_name = "StarRail"
     act_id = "e202304121516551"
     game_id = 6
+
+
+class ZenlessZoneZeroSign(BaseGameSign):
+    """
+    绝区零 游戏签到
+    """
+    name = "绝区零"
+    en_name = "ZenlessZoneZero"
+    act_id = "e202406242138391"
+    game_id = 8
+    url_reward = "https://act-nap-api.mihoyo.com/event/luna/zzz/home"
+    url_info = "https://act-nap-api.mihoyo.com/event/luna/zzz/info"
+    url_sign = "https://act-nap-api.mihoyo.com/event/luna/zzz/sign"
+    headers_general = BaseGameSign.headers_general.copy()
+    headers_reward = BaseGameSign.headers_reward.copy()
+    for headers in headers_general, headers_reward:
+        headers["x-rpc-signgame"] = "zzz"
+        headers["Origin"] = "https://act.mihoyo.com"
+        headers["Referer"] = "https://act.mihoyo.com/"
+        headers["Host"] = "act-nap-api.mihoyo.com"
 
 
 BaseGameSign.available_game_signs.add(GenshinImpactSign)
@@ -277,3 +302,4 @@ BaseGameSign.available_game_signs.add(HonkaiImpact3Sign)
 BaseGameSign.available_game_signs.add(HoukaiGakuen2Sign)
 BaseGameSign.available_game_signs.add(TearsOfThemisSign)
 BaseGameSign.available_game_signs.add(StarRailSign)
+BaseGameSign.available_game_signs.add(ZenlessZoneZeroSign)

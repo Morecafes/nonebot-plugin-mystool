@@ -23,9 +23,8 @@ except ImportError:
     Logger = None
     pass
 
-from nonebot import Adapter, Bot, require
+from nonebot import Adapter, Bot
 
-require("nonebot_plugin_saa")
 from nonebot_plugin_saa import MessageSegmentFactory, Text, AggregatedMessageFactory, TargetQQPrivate, \
     TargetQQGuildDirect, enable_auto_select_bot
 
@@ -237,6 +236,7 @@ async def get_validate(user: UserData, gt: str = None, challenge: str = None, re
     """
     使用打码平台获取人机验证validate
 
+    :param user: 用户数据对象
     :param gt: 验证码gt
     :param challenge: challenge
     :param retry: 是否允许重试
@@ -247,33 +247,33 @@ async def get_validate(user: UserData, gt: str = None, challenge: str = None, re
             return GeetestResult("", "")
         geetest_url = user.geetest_url
         params = {"gt": gt, "challenge": challenge}
-        params.update(user.geetest_params)
+        params.update(user.geetest_params or {})
     else:
         if not (gt and challenge) or not plugin_config.preference.geetest_url:
             return GeetestResult("", "")
         geetest_url = plugin_config.preference.geetest_url
         params = {"gt": gt, "challenge": challenge}
-        params.update(plugin_config.preference.geetest_params)
+        params.update(plugin_config.preference.geetest_params or {})
     content = deepcopy(plugin_config.preference.geetest_json or Preference().geetest_json)
     for key, value in content.items():
         if isinstance(value, str):
             content[key] = value.format(gt=gt, challenge=challenge)
+    debug_log = {"geetest_url": geetest_url, "params": params, "content": content}
+    logger.debug(f"{plugin_config.preference.log_head}get_validate: {debug_log}")
     try:
-        async for attempt in get_async_retry(retry):
-            with attempt:
-                async with httpx.AsyncClient() as client:
-                    res = await client.post(
-                        geetest_url,
-                        params=params,
-                        json=content,
-                        timeout=60
-                    )
-                geetest_data = res.json()
-                validate = geetest_data['data']['validate']
-                seccode = geetest_data['data'].get('seccode') or f"{validate}|jordan"
-                logger.debug(f"{plugin_config.preference.log_head}人机验证结果：{geetest_data}")
-                return GeetestResult(validate=validate, seccode=seccode)
-    except tenacity.RetryError as e:
+        async with httpx.AsyncClient() as client:
+            res = await client.post(
+                geetest_url,
+                params=params,
+                json=content,
+                timeout=60
+            )
+        geetest_data = res.json()
+        logger.debug(f"{plugin_config.preference.log_head}人机验证结果：{geetest_data}")
+        validate = geetest_data['data']['validate']
+        seccode = geetest_data['data'].get('seccode') or f"{validate}|jordan"
+        return GeetestResult(validate=validate, seccode=seccode)
+    except Exception:
         logger.exception(f"{plugin_config.preference.log_head}获取人机验证validate失败")
 
 
@@ -303,7 +303,7 @@ async def get_file(url: str, retry: bool = True):
 
     :param url: 文件URL
     :param retry: 是否允许重试
-    :return: 文件数据
+    :return: 文件数据，若下载失败则返回 ``None``
     """
     try:
         async for attempt in get_async_retry(retry):
@@ -313,6 +313,7 @@ async def get_file(url: str, retry: bool = True):
                 return res.content
     except tenacity.RetryError:
         logger.exception(f"{plugin_config.preference.log_head}下载文件 - {url} 失败")
+        return None
 
 
 def blur_phone(phone: Union[str, int]) -> str:

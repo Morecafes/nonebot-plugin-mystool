@@ -1,30 +1,27 @@
-name: Upload Python Package
+name: Publish Python Package
 
 on:
   workflow_dispatch:
+  workflow_call:
   release:
-    types: [published]
-
-permissions:
-  contents: read
+    types: [ published ]
 
 jobs:
-  deploy:
-
+  publish:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.11'
-    - name: Install Poetry
-      run: |
-        curl -sSL https://install.python-poetry.org | python3 -
-    - name: Build package with Poetry
-      run: poetry build
-    - name: Publish package with Poetry
-      run: |
-        poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
-        poetry publish
+      - uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.11"
+
+      - name: Build package with Poetry
+        run: poetry build
+
+      - name: Publish package with Poetry
+        run: |
+          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+          poetry publish

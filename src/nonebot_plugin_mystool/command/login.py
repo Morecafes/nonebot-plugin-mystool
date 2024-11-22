@@ -93,7 +93,7 @@ async def handle_first_receive(event: Union[GeneralMessageEvent]):
                     logger.success(f"用户 {bbs_uid} 成功获取 game_token: {game_token}")
                     break
                 elif login_status.qrcode_expired:
-                    get_cookie.finish("⚠️二维码已过期，登录失败")
+                    await get_cookie.finish("⚠️二维码已过期，登录失败")
                 elif not login_status:
                     await asyncio.sleep(plugin_config.preference.qrcode_query_interval)
                     continue
@@ -153,7 +153,7 @@ async def handle_first_receive(event: Union[GeneralMessageEvent]):
                                 account.cookies.update(cookies)
                                 PluginDataManager.write_plugin_data()
             else:
-                get_cookie.finish("⚠️获取二维码扫描状态超时，请尝试重新登录")
+                await get_cookie.finish("⚠️获取二维码扫描状态超时，请尝试重新登录")
 
         if not login_status:
             notice_text = "⚠️登录失败："
